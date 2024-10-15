@@ -1,12 +1,19 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { ConfigService } from '@nestjs/config';
 import { TenancyService } from '../tenancy/tenancy.service';
+import { execSync } from 'child_process';
 
 @Injectable()
 export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   private defaultPool: Pool;
+  private readonly logger = new Logger(DatabaseService.name);
   private readonly tenantConnections: Map<
     string,
     { pool: Pool; database: NodePgDatabase<any> }
@@ -43,6 +50,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       this.tenancyService.getTenants(),
     )) {
       await this.createTenantConnection(tenantId, connectionString);
+      this.runMigrations(tenantId, connectionString);
     }
   }
 
@@ -71,5 +79,18 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     if (result.rowCount === 0) {
       await this.defaultPool.query(`CREATE DATABASE ${tenantId}`);
     }
+  }
+
+  private runMigrations(tenantId: string, connectionString: string) {
+    const databaseUrl = this.configService.getOrThrow<string>('DATABASE_URL');
+    process.env.DATABASE_URL = connectionString;
+
+    const output = execSync('drizzle-kit migrate --config drizzle.config.ts', {
+      encoding: 'utf8',
+    });
+
+    this.logger.log(`Migrations for tenant ${tenantId}:\n${output}`);
+
+    process.env.DATABASE_URL = databaseUrl;
   }
 }

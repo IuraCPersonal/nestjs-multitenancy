@@ -5,9 +5,10 @@ import { AppService } from './app.service';
 import { TenancyModule } from './tenancy/tenancy.module';
 import { TenancyMiddleware } from './tenancy/tenancy.middleware';
 import { DatabaseModule } from './database/database.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
-  imports: [TenancyModule, ConfigModule.forRoot(), DatabaseModule],
+  imports: [TenancyModule, ConfigModule.forRoot(), DatabaseModule, UsersModule],
   controllers: [AppController],
   providers: [AppService],
 })
