@@ -21,4 +21,8 @@ export class TenancyService implements OnModuleInit {
       throw new BadRequestException('Invalid tenant ID');
     }
   }
+
+  getTenants(): Tenants {
+    return this.tenants;
+  }
 }
